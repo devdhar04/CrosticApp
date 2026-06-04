@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "Crostic Puzzle",
+    "slug": "mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "mobile",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0D1117"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.betterapps.crostic"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#0D1117"
+      },
+      "package": "com.betterapps.crostic",
+      "permissions": [
+        "POST_NOTIFICATIONS",
+        "com.android.vending.BILLING"
+      ],
+      "notification": {
+        "icon": "./assets/images/notification-icon.png",
+        "color": "#4C51A0",
+        "androidMode": "default",
+        "androidCollapsedTitle": "New puzzles await!"
+      },
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-1504708773553595~9960116650"
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      "react-native-iap",
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

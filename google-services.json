@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "642188186156",
+    "project_id": "crostic-bea0d",
+    "storage_bucket": "crostic-bea0d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:642188186156:android:369b39bfc4a8443711f789",
+        "android_client_info": {
+          "package_name": "com.betterapps.crostic"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOcbaTlRp-dRfRKnXNkQ3bW32_esdFiy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
