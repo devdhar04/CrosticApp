@@ -27,12 +27,6 @@
         "POST_NOTIFICATIONS",
         "com.android.vending.BILLING"
       ],
-      "notification": {
-        "icon": "./assets/images/notification-icon.png",
-        "color": "#4C51A0",
-        "androidMode": "default",
-        "androidCollapsedTitle": "New puzzles await!"
-      },
       "googleServicesFile": "./google-services.json",
       "config": {
         "googleMobileAdsAppId": "ca-app-pub-1504708773553595~9960116650"
