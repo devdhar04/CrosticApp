@@ -33,8 +33,8 @@ const PRODUCTION_IDS = {
     ios: 'ca-app-pub-1504708773553595/8688917498',
   }),
   INTERSTITIAL: Platform.select({
-    android: 'ca-app-pub-1504708773553595/8688917498', // TODO: Create separate interstitial ad unit
-    ios: 'ca-app-pub-1504708773553595/8688917498',
+    android: 'ca-app-pub-1504708773553595/4343432661',
+    ios: 'ca-app-pub-1504708773553595/4343432661',
   }),
   REWARDED: Platform.select({
     android: 'ca-app-pub-1504708773553595/6845352784',

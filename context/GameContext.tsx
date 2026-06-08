@@ -110,7 +110,7 @@ interface GameContextValue extends GameState {
   purchaseRemoveAds: () => void;
   purchasePremium: () => void;
   purchaseCoinPack: (coins: number) => void;
-  shouldShowInterstitial: () => boolean;
+  shouldShowInterstitial: (frequency?: number) => boolean;
   resetInterstitialCounter: () => void;
 }
 
@@ -455,8 +455,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   // ─── Interstitial ─────────────────────────────────────────────────────────────
-  const shouldShowInterstitial = useCallback((): boolean => {
-    return !state.removeAds && state.puzzlesSinceInterstitial >= 3;
+  const shouldShowInterstitial = useCallback((frequency = 3): boolean => {
+    return !state.removeAds && state.puzzlesSinceInterstitial >= frequency;
   }, [state.removeAds, state.puzzlesSinceInterstitial]);
 
   const resetInterstitialCounter = useCallback(

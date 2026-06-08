@@ -37,6 +37,7 @@ export function useAdMob() {
   const interstitialRef = useRef<any>(null);
   const rewardedRef = useRef<any>(null);
   const rewardCallbackRef = useRef<(() => void) | null>(null);
+  const interstitialClosedCallbackRef = useRef<(() => void) | null>(null);
 
   const loadInterstitialAd = useCallback(() => {
     if (!isAdMobAvailable) return;
@@ -53,6 +54,10 @@ export function useAdMob() {
         console.log('📺 Interstitial ad closed');
         setInterstitialLoaded(false);
         interstitialRef.current = null;
+        if (interstitialClosedCallbackRef.current) {
+          interstitialClosedCallbackRef.current();
+          interstitialClosedCallbackRef.current = null;
+        }
         loadInterstitialAd();
       });
 
@@ -124,19 +129,24 @@ export function useAdMob() {
     init();
   }, [loadInterstitialAd, loadRewardedAd]);
 
-  const showInterstitial = useCallback(async () => {
+  const showInterstitial = useCallback(async (onClosed?: () => void) => {
+    if (onClosed) interstitialClosedCallbackRef.current = onClosed;
     if (!isAdMobAvailable) {
       console.log('📺 [Demo] Interstitial ad would show here');
+      onClosed?.();
       return;
     }
     if (!interstitialLoaded || !interstitialRef.current) {
       console.log('📺 Interstitial ad not ready yet');
+      onClosed?.();
       return;
     }
     try {
       await interstitialRef.current.show();
     } catch (error) {
       console.error('❌ Failed to show interstitial ad:', error);
+      interstitialClosedCallbackRef.current = null;
+      onClosed?.();
     }
   }, [interstitialLoaded]);
 

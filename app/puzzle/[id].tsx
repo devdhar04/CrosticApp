@@ -22,6 +22,7 @@ import RewardedAdModal from "@/components/RewardedAdModal";
 import { PUZZLES } from "@/constants/puzzleData";
 import { AD_CONFIG } from "@/constants/adConfig";
 import { useAdMob } from "@/hooks/useAdMob";
+import { useRemoteConfig } from "@/hooks/useRemoteConfig";
 import {
   HINT_COST_LETTER,
   HINT_COST_REMOVE_WRONG,
@@ -58,7 +59,8 @@ export default function PuzzleScreen() {
     shouldShowInterstitial,
     resetInterstitialCounter,
   } = useGame();
-  const { showRewarded } = useAdMob();
+  const { showRewarded, showInterstitial } = useAdMob();
+  const { interstitialAdEnabled, interstitialFrequency } = useRemoteConfig();
 
   const raw = useMemo(() => PUZZLES.find((p) => p.id === id), [id]);
   const puzzle = useMemo(() => (raw ? processPuzzle(raw) : null), [raw]);
@@ -73,7 +75,6 @@ export default function PuzzleScreen() {
   const [showOutOfCoins, setShowOutOfCoins] = useState(false);
   const [pendingHintType, setPendingHintType] = useState<HintType | null>(null);
   const [pendingHintCost, setPendingHintCost] = useState(0);
-  const [showInterstitial, setShowInterstitial] = useState(false);
   const [idleNudge, setIdleNudge] = useState(false);
   const [doubleRewardPending, setDoubleRewardPending] = useState(false);
   const [earnedCoins, setEarnedCoins] = useState(0);
@@ -148,11 +149,6 @@ export default function PuzzleScreen() {
 
       // Delay congrats so haptics/state can settle
       setTimeout(() => setShowCongrats(true), 200);
-
-      if (shouldShowInterstitial()) {
-        resetInterstitialCounter();
-        // Show interstitial after congrats is dismissed
-      }
     }
   }, [stats?.isComplete]);
 
@@ -384,29 +380,29 @@ export default function PuzzleScreen() {
         onReward={handleAdReward}
       />
 
-      {/* Interstitial (between puzzles — reuse ad modal with no reward) */}
-      <RewardedAdModal
-        visible={showInterstitial}
-        onClose={() => setShowInterstitial(false)}
-        onReward={() => {}}
-      />
-
       {/* Congrats */}
       <CongratsModal
         visible={showCongrats}
         onClose={() => {
           setShowCongrats(false);
-          // Find next unlocked puzzle
-          const completedIds = new Set(completedPuzzles.map((c) => c.puzzleId));
-          completedIds.add(puzzle.id); // Add current puzzle to completed set
-          const nextPuzzle = PUZZLES.find((p) => !completedIds.has(p.id));
 
-          if (nextPuzzle) {
-            // Navigate to next puzzle
-            router.replace({ pathname: "/puzzle/[id]", params: { id: nextPuzzle.id } });
+          const navigate = () => {
+            const completedIds = new Set(completedPuzzles.map((c) => c.puzzleId));
+            completedIds.add(puzzle.id);
+            const nextPuzzle = PUZZLES.find((p) => !completedIds.has(p.id));
+            if (nextPuzzle) {
+              router.replace({ pathname: "/puzzle/[id]", params: { id: nextPuzzle.id } });
+            } else {
+              router.back();
+            }
+          };
+
+          // Show interstitial if enabled via Remote Config and frequency threshold met
+          if (interstitialAdEnabled && shouldShowInterstitial(interstitialFrequency)) {
+            resetInterstitialCounter();
+            showInterstitial(navigate);
           } else {
-            // All puzzles completed, go back to home
-            router.back();
+            navigate();
           }
         }}
         quote={puzzle.quote}
