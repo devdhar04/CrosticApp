@@ -71,7 +71,7 @@ export default function SettingsScreen() {
     enableNotifications,
     disableNotifications,
     sendTestNotification,
-  } = useNotifications();
+  } = useNotifications(streak.current);
 
   const handleToggleSound = () =>
     updateSettings({ soundEnabled: !settings.soundEnabled });

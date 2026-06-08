@@ -23,6 +23,8 @@ import { PUZZLES } from "@/constants/puzzleData";
 import { AD_CONFIG } from "@/constants/adConfig";
 import { useAdMob } from "@/hooks/useAdMob";
 import { useRemoteConfig } from "@/hooks/useRemoteConfig";
+import { useNotifications } from "@/hooks/useNotifications";
+import { getDailyPuzzleId } from "@/utils/puzzleEngine";
 import {
   logPuzzleStart,
   logPuzzleComplete,
@@ -70,6 +72,7 @@ export default function PuzzleScreen() {
   } = useGame();
   const { showRewarded, showInterstitial } = useAdMob();
   const { interstitialAdEnabled, interstitialFrequency } = useRemoteConfig();
+  const { cancelDailyReminders } = useNotifications();
 
   const raw = useMemo(() => PUZZLES.find((p) => p.id === id), [id]);
   const puzzle = useMemo(() => (raw ? processPuzzle(raw) : null), [raw]);
@@ -165,6 +168,12 @@ export default function PuzzleScreen() {
         if (completedPuzzles.length >= 9)  unlockAchievement("ten_puzzles");
         if (hintsUsed === 0)               unlockAchievement("no_hints");
         if (duration < 300)                unlockAchievement("speed_5min");
+      }
+
+      // Cancel remaining daily reminders if this was the daily puzzle
+      const dailyId = getDailyPuzzleId(PUZZLES);
+      if (puzzle.id === dailyId) {
+        cancelDailyReminders();
       }
 
       // Delay congrats so haptics/state can settle

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Conditional imports - only load if native modules exist
 let Notifications: any = null;
 let Device: any = null;
 
@@ -10,7 +9,6 @@ try {
   Notifications = require('expo-notifications');
   Device = require('expo-device');
 
-  // Configure how notifications should be displayed when app is in foreground
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -18,51 +16,70 @@ try {
       shouldSetBadge: true,
     }),
   });
-} catch (error) {
-  // Notifications module not available in Expo Go - this is expected
+} catch {
   if (__DEV__) {
     console.log('ℹ️ Notifications: Using demo mode (build production app for real notifications)');
   }
 }
 
 const NOTIFICATION_ENABLED_KEY = 'notifications_enabled';
+const CHANNEL_ID = 'daily-puzzles';
 
-// Daily notification messages (randomly selected)
-const DAILY_MESSAGES = [
-  {
-    title: '🧩 Daily Puzzle Awaits!',
-    body: 'Time to exercise your brain! Solve today\'s puzzle.',
-  },
-  {
-    title: '🎯 Keep Your Streak Going!',
-    body: 'Don\'t break your winning streak. Play now!',
-  },
-  {
-    title: '💡 New Puzzle Available!',
-    body: 'Challenge yourself with a fresh crostic puzzle.',
-  },
-  {
-    title: '🌟 Puzzle Time!',
-    body: 'Your daily dose of word puzzles is ready.',
-  },
-  {
-    title: '🔥 Daily Challenge!',
-    body: 'A new puzzle is waiting. Can you solve it?',
-  },
-  {
-    title: '📚 Word Master!',
-    body: 'Sharpen your skills with today\'s puzzle.',
-  },
+// ─── Message pool ─────────────────────────────────────────────────────────────
+
+function getDailyMessages(streak: number) {
+  const streakLine =
+    streak >= 7  ? `🔥 ${streak}-day streak — keep it alive!` :
+    streak >= 3  ? `🔥 You're on a ${streak}-day streak!` :
+    streak === 1 ? `⚡ You started a streak yesterday!` : null;
+
+  const messages = [
+    {
+      title: '🧩 Daily Challenge is live!',
+      body: streakLine ?? "Today's crostic puzzle is waiting. Can you crack it?",
+    },
+    {
+      title: '🎯 Your daily puzzle is ready',
+      body: streakLine ?? "A fresh crostic is here — test your word skills!",
+    },
+    {
+      title: '💡 Brain workout time!',
+      body: streakLine ?? "Solve today's crostic and keep your mind sharp.",
+    },
+    {
+      title: '🌟 New daily puzzle!',
+      body: streakLine ?? "Don't miss today's challenge — puzzles reset at midnight.",
+    },
+    {
+      title: '🔥 Daily challenge awaits',
+      body: streakLine ?? "Jump in and solve today's crostic before it's gone!",
+    },
+    {
+      title: '📚 Word puzzle time',
+      body: streakLine ?? "Sharpen your skills — today's crostic is ready.",
+    },
+  ];
+
+  return messages;
+}
+
+// Times to send the daily reminder (local device time)
+const REMINDER_TIMES = [
+  { hour: 9,  minute: 0  },  // 9:00 AM
+  { hour: 14, minute: 0  },  // 2:00 PM
+  { hour: 19, minute: 0  },  // 7:00 PM
 ];
 
-export function useNotifications() {
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
+export function useNotifications(streak = 0) {
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'undetermined' | 'granted' | 'denied'>('undetermined');
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
+  const routerRef = useRef<any>(null);
 
-  // If modules not available, return mock implementation
   if (!Notifications || !Device) {
     return {
       expoPushToken: undefined,
@@ -76,36 +93,37 @@ export function useNotifications() {
       sendTestNotification: async () => {
         Alert.alert('Development Mode', 'Notifications not available in dev mode.');
       },
+      cancelDailyReminders: async () => {},
+      setRouter: (_r: any) => {},
     };
   }
 
-  // Initialize notifications
   useEffect(() => {
     registerForPushNotifications();
     loadNotificationSettings();
 
-    // Listen for notifications while app is foregrounded
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('📬 Notification received:', notification);
+    notificationListener.current = Notifications.addNotificationReceivedListener((notification: any) => {
+      console.log('📬 Notification received:', notification.request.content.title);
     });
 
-    // Listen for user tapping on notification
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('📬 Notification tapped:', response);
-      // You can navigate to specific screen here if needed
+    // Navigate to daily screen when user taps the notification
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response: any) => {
+      const screen = response.notification.request.content.data?.screen;
+      if (screen === 'daily' && routerRef.current) {
+        routerRef.current.push('/(tabs)/daily');
+      }
     });
 
     return () => {
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
+      notificationListener.current?.remove();
+      responseListener.current?.remove();
     };
   }, []);
 
-  // Register for push notifications
+  function setRouter(router: any) {
+    routerRef.current = router;
+  }
+
   async function registerForPushNotifications() {
     if (!Device.isDevice) {
       console.log('Must use physical device for Push Notifications');
@@ -115,7 +133,6 @@ export function useNotifications() {
     try {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-
       setPermissionStatus(existingStatus);
 
       if (existingStatus !== 'granted') {
@@ -125,18 +142,16 @@ export function useNotifications() {
       }
 
       if (finalStatus !== 'granted') {
-        console.log('Failed to get push token for push notification!');
+        console.log('Push notification permission not granted');
         return;
       }
 
-      // Get Expo push token (for push notifications from a server)
       const token = (await Notifications.getExpoPushTokenAsync()).data;
       console.log('📱 Push token:', token);
       setExpoPushToken(token);
 
-      // For Android, set notification channel
       if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('daily-puzzles', {
+        await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
           name: 'Daily Puzzle Reminders',
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 250, 250, 250],
@@ -149,13 +164,11 @@ export function useNotifications() {
     }
   }
 
-  // Load notification settings from storage
   async function loadNotificationSettings() {
     try {
       const enabled = await AsyncStorage.getItem(NOTIFICATION_ENABLED_KEY);
       const isEnabled = enabled === 'true';
       setNotificationsEnabled(isEnabled);
-
       if (isEnabled) {
         await scheduleDailyNotifications();
       }
@@ -164,17 +177,12 @@ export function useNotifications() {
     }
   }
 
-  // Enable daily notifications
   async function enableNotifications() {
     try {
-      // Request permission if not granted
       if (permissionStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         setPermissionStatus(status);
-
-        if (status !== 'granted') {
-          return false;
-        }
+        if (status !== 'granted') return false;
       }
 
       await AsyncStorage.setItem(NOTIFICATION_ENABLED_KEY, 'true');
@@ -187,12 +195,12 @@ export function useNotifications() {
     }
   }
 
-  // Disable daily notifications
   async function disableNotifications() {
     try {
       await AsyncStorage.setItem(NOTIFICATION_ENABLED_KEY, 'false');
       setNotificationsEnabled(false);
-      await cancelAllNotifications();
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      console.log('🗑️ All notifications cancelled');
       return true;
     } catch (error) {
       console.error('Error disabling notifications:', error);
@@ -200,64 +208,78 @@ export function useNotifications() {
     }
   }
 
-  // Schedule daily notifications at specific times
   async function scheduleDailyNotifications() {
+    if (!Notifications) return;
+
     try {
-      // Cancel existing notifications first
-      await cancelAllNotifications();
+      await Notifications.cancelAllScheduledNotificationsAsync();
 
-      // Schedule notifications for 9 AM, 2 PM, and 7 PM daily
-      const scheduleTimes = [
-        { hour: 9, minute: 0 },   // 9:00 AM
-        { hour: 14, minute: 0 },  // 2:00 PM
-        { hour: 19, minute: 0 },  // 7:00 PM
-      ];
+      const messages = getDailyMessages(streak);
 
-      for (const time of scheduleTimes) {
-        const message = DAILY_MESSAGES[Math.floor(Math.random() * DAILY_MESSAGES.length)];
+      for (const time of REMINDER_TIMES) {
+        const message = messages[Math.floor(Math.random() * messages.length)];
 
         await Notifications.scheduleNotificationAsync({
           content: {
             title: message.title,
             body: message.body,
             sound: 'default',
-            data: { type: 'daily_reminder' },
+            // Deep-link payload — tap opens the daily challenge screen
+            data: { screen: 'daily', type: 'daily_reminder' },
+            ...(Platform.OS === 'android' && { channelId: CHANNEL_ID }),
           },
           trigger: {
-            type: 'daily',
+            type: Notifications.SchedulableTriggerInputTypes?.DAILY ?? 'daily',
             hour: time.hour,
             minute: time.minute,
           },
         });
       }
 
-      console.log('✅ Daily notifications scheduled');
+      console.log(`✅ Daily notifications scheduled (streak: ${streak})`);
     } catch (error) {
       console.error('Error scheduling notifications:', error);
     }
   }
 
-  // Cancel all scheduled notifications
-  async function cancelAllNotifications() {
+  /**
+   * Call this when the user completes the daily challenge.
+   * Cancels any remaining reminders for today so they don't get
+   * nagged after they've already played.
+   */
+  async function cancelDailyReminders() {
+    if (!Notifications) return;
     try {
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      console.log('🗑️ All notifications canceled');
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const now = new Date();
+
+      for (const n of scheduled) {
+        const data = n.content.data;
+        if (data?.type !== 'daily_reminder') continue;
+
+        // Cancel reminders whose trigger hour is still in the future today
+        const triggerHour = n.trigger?.hour ?? 24;
+        if (triggerHour > now.getHours()) {
+          await Notifications.cancelScheduledNotificationAsync(n.identifier);
+        }
+      }
+      console.log('✅ Remaining daily reminders cancelled after completion');
     } catch (error) {
-      console.error('Error canceling notifications:', error);
+      console.error('Error cancelling daily reminders:', error);
     }
   }
 
-  // Send a test notification immediately
   async function sendTestNotification() {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '🎮 Test Notification',
-          body: 'Your notifications are working perfectly!',
+          title: '🎮 Notification test',
+          body: "Your daily puzzle reminders are working!",
           sound: 'default',
-          data: { type: 'test' },
+          data: { screen: 'daily', type: 'test' },
+          ...(Platform.OS === 'android' && { channelId: CHANNEL_ID }),
         },
-        trigger: null, // Send immediately
+        trigger: null,
       });
     } catch (error) {
       console.error('Error sending test notification:', error);
@@ -270,6 +292,9 @@ export function useNotifications() {
     permissionStatus,
     enableNotifications,
     disableNotifications,
+    scheduleDailyNotifications,
+    cancelDailyReminders,
     sendTestNotification,
+    setRouter,
   };
 }
