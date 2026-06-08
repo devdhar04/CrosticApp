@@ -15,11 +15,20 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GameProvider } from "@/context/GameContext";
+import { logAppOpen } from "@/utils/analytics";
 
 // Firebase Crashlytics
 try {
   const crashlytics = require('@react-native-firebase/crashlytics').default;
   crashlytics().setCrashlyticsCollectionEnabled(true);
+} catch {
+  // Not available in dev/Expo Go
+}
+
+// Firebase Analytics — enable collection
+try {
+  const analytics = require('@react-native-firebase/analytics').default;
+  analytics().setAnalyticsCollectionEnabled(true);
 } catch {
   // Not available in dev/Expo Go
 }
@@ -51,6 +60,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
+      logAppOpen();
     }
   }, [fontsLoaded, fontError]);
 

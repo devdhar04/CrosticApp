@@ -6,6 +6,14 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import {
+  logAchievementUnlocked,
+  logDailyRewardClaimed,
+  logSpinWheel,
+  logMissionCompleted,
+  logStreakUpdated,
+  setUserProperties,
+} from "@/utils/analytics";
 
 export interface CompletedPuzzle {
   puzzleId: string;
@@ -304,6 +312,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           return m;
         });
 
+        const nextCompletedCount = alreadyDone
+          ? prev.completedPuzzles.length
+          : prev.completedPuzzles.length + 1;
+
+        if (!alreadyDone && newStreak.current !== prev.streak.current) {
+          logStreakUpdated({ current_streak: newStreak.current, best_streak: newStreak.best });
+        }
+
+        const nextLevel = getLevelFromXP(prev.xp + xpEarned);
+        setUserProperties({
+          level: nextLevel,
+          total_puzzles_completed: nextCompletedCount,
+          has_remove_ads: prev.removeAds,
+          is_premium: prev.isPremium,
+        });
+
         return {
           ...prev,
           completedPuzzles: alreadyDone
@@ -322,13 +346,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const unlockAchievement = useCallback(
-    (id: string) =>
-      update((prev) => ({
-        ...prev,
-        achievements: prev.achievements.map((a) =>
-          a.id === id && !a.unlockedAt ? { ...a, unlockedAt: Date.now() } : a
-        ),
-      })),
+    (id: string) => {
+      update((prev) => {
+        const target = prev.achievements.find((a) => a.id === id && !a.unlockedAt);
+        if (target) {
+          logAchievementUnlocked({ achievement_id: id, achievement_title: target.title });
+        }
+        return {
+          ...prev,
+          achievements: prev.achievements.map((a) =>
+            a.id === id && !a.unlockedAt ? { ...a, unlockedAt: Date.now() } : a
+          ),
+        };
+      });
+    },
     [update]
   );
 
@@ -389,11 +420,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const claimDailyReward = useCallback(() => {
     const today = new Date().toDateString();
-    update((prev) => ({
-      ...prev,
-      coins: prev.coins + getDailyRewardCoins(prev.streak.current),
-      lastRewardDate: today,
-    }));
+    update((prev) => {
+      const coinsEarned = getDailyRewardCoins(prev.streak.current);
+      logDailyRewardClaimed({ streak_day: prev.streak.current, coins_earned: coinsEarned });
+      return {
+        ...prev,
+        coins: prev.coins + coinsEarned,
+        lastRewardDate: today,
+      };
+    });
   }, [update]);
 
   // ─── Spin wheel ──────────────────────────────────────────────────────────────
@@ -404,11 +439,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const doSpin = useCallback((): number => {
     const today = new Date().toDateString();
     const reward = SPIN_REWARDS[Math.floor(Math.random() * SPIN_REWARDS.length)];
-    update((prev) => ({
-      ...prev,
-      coins: prev.coins + reward,
-      lastSpinDate: today,
-    }));
+    update((prev) => {
+      logSpinWheel({ coins_won: reward, streak_day: prev.streak.current });
+      return { ...prev, coins: prev.coins + reward, lastSpinDate: today };
+    });
     return reward;
   }, [update]);
 
@@ -430,6 +464,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const updated = refreshed.map((m) => {
           if (m.id === missionId && m.progress >= m.target && !m.claimed) {
             coinsToAdd = m.reward;
+            logMissionCompleted({ mission_id: m.id, reward_coins: m.reward });
             return { ...m, claimed: true };
           }
           return m;

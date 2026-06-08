@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PUZZLES } from "@/constants/puzzleData";
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
+import { logScreenView } from "@/utils/analytics";
 
 function StatCard({
   icon,
@@ -134,6 +135,7 @@ function AchievementItem({
 }
 
 export default function StatsScreen() {
+  React.useEffect(() => { logScreenView('stats'); }, []);
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const {

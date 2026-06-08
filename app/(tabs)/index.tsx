@@ -22,6 +22,7 @@ import DailyRewardModal from "@/components/DailyRewardModal";
 // import SpinWheelModal from "@/components/SpinWheelModal";
 import { getDailyRewardCoins, useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
+import { logScreenView } from "@/utils/analytics";
 
 const DIFFICULTY_COLORS: Record<string, string> = {
   easy: "#52B788",
@@ -309,6 +310,7 @@ export default function HomeScreen() {
 
   // Auto-show daily reward on mount
   useEffect(() => {
+    logScreenView('home');
     if (hasPendingReward()) {
       const timer = setTimeout(() => setShowDailyReward(true), 600);
       return () => clearTimeout(timer);

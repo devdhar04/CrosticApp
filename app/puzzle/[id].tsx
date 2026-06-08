@@ -24,6 +24,15 @@ import { AD_CONFIG } from "@/constants/adConfig";
 import { useAdMob } from "@/hooks/useAdMob";
 import { useRemoteConfig } from "@/hooks/useRemoteConfig";
 import {
+  logPuzzleStart,
+  logPuzzleComplete,
+  logHintUsed,
+  logAdImpression,
+  logAdDismissed,
+  logRewardedAdComplete,
+  logScreenView,
+} from "@/utils/analytics";
+import {
   HINT_COST_LETTER,
   HINT_COST_REMOVE_WRONG,
   HINT_COST_WORD,
@@ -109,6 +118,10 @@ export default function PuzzleScreen() {
   useEffect(() => {
     if (puzzle) {
       navigation.setOptions({ title: puzzle.theme, headerBackTitle: "Back" });
+      logScreenView('puzzle');
+      if (!isPuzzleCompleted(puzzle.id)) {
+        logPuzzleStart({ puzzle_id: puzzle.id, difficulty: puzzle.difficulty });
+      }
     }
   }, [puzzle, navigation]);
 
@@ -138,6 +151,13 @@ export default function PuzzleScreen() {
         durationSeconds: duration,
         hintsUsed,
         difficulty: puzzle.difficulty,
+      });
+      logPuzzleComplete({
+        puzzle_id: puzzle.id,
+        difficulty: puzzle.difficulty,
+        duration_seconds: duration,
+        hints_used: hintsUsed,
+        coins_earned: coinReward,
       });
       if (!isPuzzleCompleted(puzzle.id)) {
         if (completedPuzzles.length === 0) unlockAchievement("first_puzzle");
@@ -243,6 +263,7 @@ export default function PuzzleScreen() {
       }
       setHintsUsed((h) => h + 1);
       incrementHintsUsed();
+      logHintUsed({ hint_type: type, coin_cost: costFor(type), puzzle_id: puzzle.id });
       resetIdleTimer();
     },
     [puzzle, selectedNum, numToGuess, incrementHintsUsed, resetIdleTimer]
@@ -267,6 +288,7 @@ export default function PuzzleScreen() {
     if (doubleRewardPending) {
       addCoins(earnedCoins);
       setDoubleRewardPending(false);
+      logRewardedAdComplete({ placement: 'double_reward', reward_coins: earnedCoins });
       return;
     }
     addCoins(AD_CONFIG.REWARDED_AD_COINS);
@@ -284,8 +306,10 @@ export default function PuzzleScreen() {
   const handleWatchRewardedAd = useCallback(() => {
     setShowOutOfCoins(false);
     setPendingHintType(null);
+    logAdImpression({ ad_type: 'rewarded', placement: 'hint_gate' });
     showRewarded(() => {
       addCoins(AD_CONFIG.REWARDED_AD_COINS);
+      logRewardedAdComplete({ placement: 'hint_gate', reward_coins: AD_CONFIG.REWARDED_AD_COINS });
     });
   }, [showRewarded, addCoins]);
 
@@ -400,7 +424,11 @@ export default function PuzzleScreen() {
           // Show interstitial if enabled via Remote Config and frequency threshold met
           if (interstitialAdEnabled && shouldShowInterstitial(interstitialFrequency)) {
             resetInterstitialCounter();
-            showInterstitial(navigate);
+            logAdImpression({ ad_type: 'interstitial', placement: 'post_puzzle' });
+            showInterstitial(() => {
+              logAdDismissed({ ad_type: 'interstitial', placement: 'post_puzzle' });
+              navigate();
+            });
           } else {
             navigate();
           }
@@ -414,6 +442,7 @@ export default function PuzzleScreen() {
           setDoubleRewardPending(true);
           setShowCongrats(false);
           setShowAdModal(true);
+          logAdImpression({ ad_type: 'rewarded', placement: 'double_reward' });
         }}
       />
     </View>

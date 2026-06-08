@@ -18,6 +18,13 @@ import { useAdMob } from "@/hooks/useAdMob";
 import { useInAppPurchases } from "@/hooks/useInAppPurchases";
 import { COIN_PACKS } from "@/constants/iapProducts";
 import type { StoreProductInfo } from "@/hooks/useInAppPurchases";
+import {
+  logScreenView,
+  logPurchaseInitiated,
+  logRemoveAdsPurchase,
+  logAdImpression,
+  logRewardedAdComplete,
+} from "@/utils/analytics";
 
 interface CoinPackProps {
   coins: number;
@@ -72,9 +79,12 @@ export default function ShopScreen() {
   const insets = useSafeAreaInsets();
   const { coins, purchaseCoinPack, purchaseRemoveAds, purchasePremium, removeAds, isPremium, addCoins } = useGame();
   const { isConnected, isLoading, purchaseProduct, getProductInfo } = useInAppPurchases();
+
+  React.useEffect(() => { logScreenView('shop'); }, []);
   const { showRewarded } = useAdMob();
 
   const handleBuy = (productId: string, coinAmount: number, price: string) => {
+    logPurchaseInitiated({ product_id: productId, coins: coinAmount, price });
     if (Platform.OS === 'android' && isConnected) {
       purchaseProduct(productId);
     } else {
@@ -104,7 +114,7 @@ export default function ShopScreen() {
       "Remove all ads permanently for $3.99?\n\n(This is a demo — no real charge.)",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Buy", onPress: () => { purchaseRemoveAds(); Alert.alert("🎉 Ads removed!"); } },
+        { text: "Buy", onPress: () => { purchaseRemoveAds(); logRemoveAdsPurchase(); Alert.alert("🎉 Ads removed!"); } },
       ]
     );
   };
@@ -156,7 +166,13 @@ export default function ShopScreen() {
             Watch a short ad to earn 30 coins — completely free.
           </Text>
           <TouchableOpacity
-            onPress={() => showRewarded(() => addCoins(AD_CONFIG.REWARDED_AD_COINS))}
+            onPress={() => {
+              logAdImpression({ ad_type: 'rewarded', placement: 'shop' });
+              showRewarded(() => {
+                addCoins(AD_CONFIG.REWARDED_AD_COINS);
+                logRewardedAdComplete({ placement: 'shop', reward_coins: AD_CONFIG.REWARDED_AD_COINS });
+              });
+            }}
             style={[styles.freeAdBtn, { backgroundColor: colors.primary }]}
             activeOpacity={0.88}
           >

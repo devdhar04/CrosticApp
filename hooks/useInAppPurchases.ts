@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Alert, Platform } from 'react-native';
 import { COIN_PACKS, IAP_PRODUCT_IDS, getCoinsForProductId } from '@/constants/iapProducts';
 import { useGame } from '@/context/GameContext';
+import { logPurchaseSuccess } from '@/utils/analytics';
 
 let RNIap: any = null;
 
@@ -128,6 +129,7 @@ export function useInAppPurchases() {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [storeProducts, setStoreProducts] = useState<Record<string, StoreProductInfo>>({});
+  const storeProductsRef = useRef<Record<string, StoreProductInfo>>({});
   const { purchaseCoinPack } = useGame();
 
   useEffect(() => {
@@ -150,6 +152,7 @@ export function useInAppPurchases() {
           const info = parseProductInfo(item);
           map[info.productId] = info;
         }
+        storeProductsRef.current = map;
         setStoreProducts(map);
       } catch (error) {
         console.error('❌ IAP init error:', error);
@@ -162,6 +165,13 @@ export function useInAppPurchases() {
       const coins = getCoinsForProductId(purchase.productId);
       if (coins > 0) {
         purchaseCoinPack(coins);
+        const info = storeProductsRef.current[purchase.productId];
+        logPurchaseSuccess({
+          product_id: purchase.productId,
+          coins,
+          value: info ? parseFloat(info.price.replace(/[^0-9.]/g, '')) || 0 : 0,
+          currency: info?.currency || 'USD',
+        });
         Alert.alert('🎉 Success!', `${coins} coins added to your balance.`);
       }
 

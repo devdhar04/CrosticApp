@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useNotifications } from "@/hooks/useNotifications";
+import { logScreenView } from "@/utils/analytics";
 
 function SettingRow({
   icon,
@@ -60,6 +61,7 @@ function SettingRow({
 }
 
 export default function SettingsScreen() {
+  React.useEffect(() => { logScreenView('settings'); }, []);
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { settings, updateSettings, coins, addCoins, streak } = useGame();
