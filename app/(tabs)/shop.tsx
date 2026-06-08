@@ -17,35 +17,51 @@ import { useColors } from "@/hooks/useColors";
 import { useAdMob } from "@/hooks/useAdMob";
 import { useInAppPurchases } from "@/hooks/useInAppPurchases";
 import { COIN_PACKS } from "@/constants/iapProducts";
+import type { StoreProductInfo } from "@/hooks/useInAppPurchases";
 
 interface CoinPackProps {
   coins: number;
-  price: string;
+  productInfo: StoreProductInfo;
   label: string;
   badge?: string;
   onBuy: () => void;
   colors: ReturnType<typeof useColors>;
 }
 
-function CoinPack({ coins, price, label, badge, onBuy, colors }: CoinPackProps) {
+function CoinPack({ coins, productInfo, label, badge, onBuy, colors }: CoinPackProps) {
+  const isOnOffer = productInfo.hasOffer && productInfo.price !== productInfo.regularPrice;
+
   return (
     <TouchableOpacity
       onPress={onBuy}
       activeOpacity={0.85}
-      style={[styles.packCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[
+        styles.packCard,
+        { backgroundColor: colors.card, borderColor: isOnOffer ? colors.accent : colors.border },
+      ]}
     >
-      {badge && (
+      {/* Offer label takes priority over regular badge */}
+      {isOnOffer && productInfo.offerLabel ? (
         <View style={[styles.packBadge, { backgroundColor: colors.accent }]}>
+          <Text style={styles.packBadgeText}>{productInfo.offerLabel}</Text>
+        </View>
+      ) : badge ? (
+        <View style={[styles.packBadge, { backgroundColor: colors.primary }]}>
           <Text style={styles.packBadgeText}>{badge}</Text>
         </View>
-      )}
+      ) : null}
+
       <View style={[styles.packIconCircle, { backgroundColor: colors.accent + "18" }]}>
         <Text style={styles.packCoinEmoji}>🪙</Text>
       </View>
       <Text style={[styles.packCoins, { color: colors.foreground }]}>{coins}</Text>
       <Text style={[styles.packLabel, { color: colors.mutedForeground }]}>{label}</Text>
-      <View style={[styles.packPriceBtn, { backgroundColor: colors.primary }]}>
-        <Text style={styles.packPriceBtnText}>{price}</Text>
+
+      <View style={[styles.packPriceBtn, { backgroundColor: isOnOffer ? colors.accent : colors.primary }]}>
+        {isOnOffer && (
+          <Text style={styles.packOldPrice}>{productInfo.regularPrice}</Text>
+        )}
+        <Text style={styles.packPriceBtnText}>{productInfo.price}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -55,16 +71,13 @@ export default function ShopScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { coins, purchaseCoinPack, purchaseRemoveAds, purchasePremium, removeAds, isPremium, addCoins } = useGame();
-  const { isConnected, isLoading, purchaseProduct } = useInAppPurchases();
+  const { isConnected, isLoading, purchaseProduct, getProductInfo } = useInAppPurchases();
   const { showRewarded } = useAdMob();
 
   const handleBuy = (productId: string, coinAmount: number, price: string) => {
-    // For Android, use real IAP. For iOS and Web, use demo mode
     if (Platform.OS === 'android' && isConnected) {
-      // Real Android purchase
       purchaseProduct(productId);
     } else {
-      // Demo mode for iOS/Web or if IAP not connected
       Alert.alert(
         "Purchase",
         Platform.OS === 'android' && !isConnected
@@ -169,17 +182,20 @@ export default function ShopScreen() {
           )}
         </View>
         <View style={styles.packsGrid}>
-          {COIN_PACKS.map((pack) => (
-            <CoinPack
-              key={pack.id}
-              coins={pack.coins}
-              price={pack.price}
-              label={pack.label}
-              badge={pack.badge}
-              onBuy={() => handleBuy(pack.id, pack.coins, pack.price)}
-              colors={colors}
-            />
-          ))}
+          {COIN_PACKS.map((pack) => {
+            const info = getProductInfo(pack);
+            return (
+              <CoinPack
+                key={pack.id}
+                coins={pack.coins}
+                productInfo={info}
+                label={pack.label}
+                badge={pack.badge}
+                onBuy={() => handleBuy(pack.id, pack.coins, info.price)}
+                colors={colors}
+              />
+            );
+          })}
         </View>
 
         {/* Premium offerings - HIDDEN FOR NOW */}
@@ -360,7 +376,8 @@ const styles = StyleSheet.create({
   packCoinEmoji: { fontSize: 24 },
   packCoins: { fontSize: 22, fontFamily: "Inter_700Bold" },
   packLabel: { fontSize: 11, fontFamily: "Inter_500Medium" },
-  packPriceBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, marginTop: 2 },
+  packPriceBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, marginTop: 2, alignItems: "center" },
+  packOldPrice: { color: "rgba(255,255,255,0.7)", fontSize: 10, fontFamily: "Inter_400Regular", textDecorationLine: "line-through" },
   packPriceBtnText: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" },
 
   premiumCard: {

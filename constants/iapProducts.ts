@@ -9,7 +9,8 @@
 export interface CoinPackProduct {
   id: string;
   coins: number;
-  price: string;
+  price: string;        // fallback price shown before store data loads
+  regularPrice: string; // original/list price — shown as strikethrough when on offer
   label: string;
   badge?: string;
 }
@@ -32,12 +33,14 @@ export const COIN_PACKS: CoinPackProduct[] = [
     id: IAP_PRODUCT_IDS.COINS_200,
     coins: 200,
     price: '$0.99',
+    regularPrice: '$0.99',
     label: 'Starter',
   },
   {
     id: IAP_PRODUCT_IDS.COINS_700,
     coins: 700,
     price: '$2.99',
+    regularPrice: '$2.99',
     label: 'Popular',
     badge: 'BEST',
   },
@@ -45,6 +48,7 @@ export const COIN_PACKS: CoinPackProduct[] = [
     id: IAP_PRODUCT_IDS.COINS_2000,
     coins: 2000,
     price: '$7.99',
+    regularPrice: '$7.99',
     label: 'Mega',
   },
 ];

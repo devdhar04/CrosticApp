@@ -14,6 +14,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { useGame } from "@/context/GameContext";
 import { useInAppPurchases } from "@/hooks/useInAppPurchases";
+import type { StoreProductInfo } from "@/hooks/useInAppPurchases";
 import { COIN_PACKS } from "@/constants/iapProducts";
 
 interface Props {
@@ -27,30 +28,41 @@ interface Props {
 
 interface CoinPackProps {
   coins: number;
-  price: string;
+  productInfo: StoreProductInfo;
   label: string;
   badge?: string;
   onBuy: () => void;
 }
 
-function CoinPackButton({ coins, price, label, badge, onBuy }: CoinPackProps) {
+function CoinPackButton({ coins, productInfo, label, badge, onBuy }: CoinPackProps) {
   const colors = useColors();
+  const isOnOffer = productInfo.hasOffer && productInfo.price !== productInfo.regularPrice;
   return (
     <TouchableOpacity
       onPress={onBuy}
       activeOpacity={0.85}
-      style={[styles.packButton, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+      style={[
+        styles.packButton,
+        { backgroundColor: colors.secondary, borderColor: isOnOffer ? colors.accent : colors.border },
+      ]}
     >
-      {badge && (
+      {isOnOffer && productInfo.offerLabel ? (
         <View style={[styles.packBadge, { backgroundColor: colors.accent }]}>
+          <Text style={styles.packBadgeText}>{productInfo.offerLabel}</Text>
+        </View>
+      ) : badge ? (
+        <View style={[styles.packBadge, { backgroundColor: colors.primary }]}>
           <Text style={styles.packBadgeText}>{badge}</Text>
         </View>
-      )}
+      ) : null}
       <Text style={styles.packCoinEmoji}>🪙</Text>
       <Text style={[styles.packCoins, { color: colors.foreground }]}>{coins}</Text>
       <Text style={[styles.packLabel, { color: colors.mutedForeground }]}>{label}</Text>
-      <View style={[styles.packPrice, { backgroundColor: colors.primary }]}>
-        <Text style={styles.packPriceText}>{price}</Text>
+      <View style={[styles.packPrice, { backgroundColor: isOnOffer ? colors.accent : colors.primary }]}>
+        {isOnOffer && (
+          <Text style={styles.packOldPriceText}>{productInfo.regularPrice}</Text>
+        )}
+        <Text style={styles.packPriceText}>{productInfo.price}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -72,7 +84,7 @@ export default function OutOfCoinsSheet({
 }: Props) {
   const colors = useColors();
   const { purchaseCoinPack } = useGame();
-  const { isConnected, purchaseProduct } = useInAppPurchases();
+  const { isConnected, purchaseProduct, getProductInfo } = useInAppPurchases();
   const slideAnim = useRef(new Animated.Value(400)).current;
   const bgAnim = useRef(new Animated.Value(0)).current;
 
@@ -206,16 +218,19 @@ export default function OutOfCoinsSheet({
 
             {/* Coin Packs */}
             <View style={styles.packsContainer}>
-              {COIN_PACKS.map((pack) => (
-                <CoinPackButton
-                  key={pack.id}
-                  coins={pack.coins}
-                  price={pack.price}
-                  label={pack.label}
-                  badge={pack.badge}
-                  onBuy={() => handleBuy(pack.id, pack.coins, pack.price)}
-                />
-              ))}
+              {COIN_PACKS.map((pack) => {
+                const info = getProductInfo(pack);
+                return (
+                  <CoinPackButton
+                    key={pack.id}
+                    coins={pack.coins}
+                    productInfo={info}
+                    label={pack.label}
+                    badge={pack.badge}
+                    onBuy={() => handleBuy(pack.id, pack.coins, info.price)}
+                  />
+                );
+              })}
             </View>
           </ScrollView>
 
@@ -410,6 +425,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
     marginTop: 2,
+    alignItems: "center",
+  },
+  packOldPriceText: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 9,
+    fontFamily: "Inter_400Regular",
+    textDecorationLine: "line-through",
   },
   packPriceText: {
     color: "#FFF",
