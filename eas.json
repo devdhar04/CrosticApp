@@ -19,7 +19,7 @@
       }
     },
     "production": {
-      "credentialsSource": "local",
+      "credentialsSource": "remote",
       "android": {
         "buildType": "app-bundle"
       }
