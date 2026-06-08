@@ -39,3 +39,7 @@ yarn-error.*
 .vercel
 
 .env
+
+# EAS local credentials (contains signing secrets)
+credentials.json
+@devdhar.s__crostic-keystore-backup/
