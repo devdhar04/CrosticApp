@@ -338,12 +338,11 @@ export default function PuzzleScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Top bar */}
+      {/* Top bar — single row: title + timer + coins */}
       <View style={[styles.topBar, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
-        <View style={styles.topLeft}>
-          <Text style={[styles.topTheme, { color: colors.foreground }]}>{puzzle.theme}</Text>
-          <Text style={[styles.topAttribution, { color: colors.mutedForeground }]}>— {puzzle.attribution}</Text>
-        </View>
+        <Text style={[styles.topTheme, { color: colors.foreground }]} numberOfLines={1} ellipsizeMode="tail">
+          {puzzle.theme}
+        </Text>
         <View style={styles.topRight}>
           <View style={[styles.timerBadge, { backgroundColor: colors.secondary }]}>
             <Feather name="clock" size={12} color={colors.mutedForeground} />
@@ -462,11 +461,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   errorText: { fontSize: 16, fontFamily: "Inter_500Medium" },
-  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  topLeft: { flex: 1, gap: 2 },
-  topTheme: { fontSize: 14, fontFamily: "Inter_700Bold" },
-  topAttribution: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  topRight: { flexDirection: "row", gap: 8, alignItems: "center" },
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, gap: 8 },
+  topTheme: { flex: 1, fontSize: 14, fontFamily: "Inter_700Bold" },
+  topRight: { flexDirection: "row", gap: 8, alignItems: "center", flexShrink: 0 },
   timerBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
   timerText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   coinBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },

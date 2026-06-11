@@ -1,8 +1,6 @@
 import React, { useRef } from "react";
 import {
   Animated,
-  Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -91,53 +89,41 @@ function PunctuationChar({ char }: { char: string }) {
 
 export default function QuoteDisplay({ puzzle, numToGuess, selectedNum, onSelectNum }: Props) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
-      style={styles.scrollView}
-    >
-      <View style={styles.wordsContainer}>
-        {puzzle.quoteWords.map((word: QuoteWord, wordIdx: number) => (
-          <React.Fragment key={wordIdx}>
-            {wordIdx > 0 && <View style={styles.wordGap} />}
-            <View style={styles.wordRow}>
-              {word.segments.map((seg) => {
-                if (seg.num !== null) {
-                  return (
-                    <LetterTile
-                      key={seg.segIndex}
-                      num={seg.num}
-                      guess={numToGuess[seg.num]}
-                      correctLetter={puzzle.numToLetter[seg.num]}
-                      isSelected={selectedNum === seg.num}
-                      onPress={() => onSelectNum(seg.num!, 'quote')}
-                    />
-                  );
-                }
-                return <PunctuationChar key={seg.segIndex} char={seg.char} />;
-              })}
-            </View>
-          </React.Fragment>
-        ))}
-      </View>
-    </ScrollView>
+    <View style={styles.wordsContainer}>
+      {puzzle.quoteWords.map((word: QuoteWord, wordIdx: number) => (
+        <React.Fragment key={wordIdx}>
+          {wordIdx > 0 && <View style={styles.wordGap} />}
+          <View style={styles.wordRow}>
+            {word.segments.map((seg) => {
+              if (seg.num !== null) {
+                return (
+                  <LetterTile
+                    key={seg.segIndex}
+                    num={seg.num}
+                    guess={numToGuess[seg.num]}
+                    correctLetter={puzzle.numToLetter[seg.num]}
+                    isSelected={selectedNum === seg.num}
+                    onPress={() => onSelectNum(seg.num!, 'quote')}
+                  />
+                );
+              }
+              return <PunctuationChar key={seg.segIndex} char={seg.char} />;
+            })}
+          </View>
+        </React.Fragment>
+      ))}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flexGrow: 0,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
   wordsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "flex-end",
-    gap: 4,
+    gap: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   wordRow: {
     flexDirection: "row",
@@ -145,16 +131,15 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   wordGap: {
-    width: 8,
+    width: 6,
   },
   tile: {
-    width: 28,
-    height: 36,
-    borderRadius: 6,
+    width: 24,
+    height: 30,
+    borderRadius: 5,
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
@@ -162,26 +147,26 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   tileLetter: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Inter_700Bold",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   tileNum: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: "Inter_500Medium",
   },
   space: {
-    width: 10,
+    width: 8,
   },
   punctContainer: {
-    width: 14,
-    height: 36,
+    width: 10,
+    height: 30,
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingBottom: 6,
+    paddingBottom: 4,
   },
   punctChar: {
-    fontSize: 16,
+    fontSize: 13,
     fontFamily: "Inter_700Bold",
   },
 });

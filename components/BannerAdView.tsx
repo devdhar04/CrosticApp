@@ -1,5 +1,6 @@
 import React from "react";
-import { View, StyleSheet, Platform } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AD_UNIT_IDS } from "@/constants/adConfig";
 
 let BannerAd: any = null;
@@ -14,12 +15,14 @@ try {
 }
 
 export default function BannerAdView() {
+  const insets = useSafeAreaInsets();
+
   if (!BannerAd || !BannerAdSize || !AD_UNIT_IDS.BANNER) {
     return null;
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       <BannerAd
         unitId={AD_UNIT_IDS.BANNER}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
